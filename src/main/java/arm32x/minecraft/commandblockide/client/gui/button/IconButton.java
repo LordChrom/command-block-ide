@@ -63,9 +63,10 @@ public abstract class IconButton extends PressableWidget {
 			context.drawTexture(RenderLayer::getGuiTextured, texture, iconX + 1, iconY + 1, 0, 0, iconWidth, iconHeight, iconWidth, iconHeight, shadowColor);
 			context.drawTexture(RenderLayer::getGuiTextured, texture, iconX, iconY, 0, 0, iconWidth, iconHeight, iconWidth, iconHeight, color);
 		} else {
-			RenderSystem.enableBlend();
-			RenderSystem.defaultBlendFunc();
-			RenderSystem.enableDepthTest();
+			//TODO render system blend
+//			RenderSystem.enableBlend();
+//			RenderSystem.defaultBlendFunc();
+//			RenderSystem.enableDepthTest();
 
 			int color = active ? 0xFFFFFFFF : 0x7FFFFFFF;
 			int shadowColor = 0x3F000000;
@@ -75,8 +76,8 @@ public abstract class IconButton extends PressableWidget {
 			}
 			context.drawTexture(RenderLayer::getGuiTextured, texture, iconX, iconY, 0, 0, iconWidth, iconHeight, iconWidth, iconHeight, color);
 
-			RenderSystem.disableDepthTest();
-			RenderSystem.disableBlend();
+//			RenderSystem.disableDepthTest();
+//			RenderSystem.disableBlend();
 		}
 	}
 
