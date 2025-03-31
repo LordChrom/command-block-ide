@@ -6,8 +6,6 @@ import arm32x.minecraft.commandblockide.payloads.UpdateFunctionCommandPayload;
 import net.minecraft.network.packet.CustomPayload.Id;
 import net.minecraft.util.Identifier;
 
-import static net.minecraft.network.packet.CustomPayload.Id;
-
 public final class Packets {
 	// Namespace
 	private static final String NAMESPACE = "commandblockide";
