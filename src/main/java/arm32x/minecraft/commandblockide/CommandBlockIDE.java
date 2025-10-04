@@ -49,7 +49,7 @@ public final class CommandBlockIDE implements ModInitializer {
 					lines[index] = merged.readString(Integer.MAX_VALUE >> 2);
 				}
 				ServerPlayerEntity player = context.player();
-				MinecraftServer server = player.getServer();
+				MinecraftServer server = player.getEntityWorld().getServer();
 				server.execute(() -> {
 					Text feedbackMessage = FunctionIO.saveFunction(server, functionId, Arrays.asList(lines));
 					player.sendMessage(feedbackMessage);

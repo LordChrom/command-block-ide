@@ -7,25 +7,21 @@ import arm32x.minecraft.commandblockide.util.OrderedTexts;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import arm32x.minecraft.commandblockide.util.ScreenUtil;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.EditBox;
-import net.minecraft.client.gui.render.state.ColoredQuadGuiElementRenderState;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.input.CursorMovement;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.texture.TextureSetup;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -34,7 +30,6 @@ import net.minecraft.util.math.MathHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
 import org.lwjgl.glfw.GLFW;
 
 @Environment(EnvType.CLIENT)
@@ -116,8 +111,7 @@ public class MultilineTextFieldWidget extends TextFieldWidget {
     }
 
     @Override
-    @Deprecated
-    public void setRenderTextProvider(BiFunction<String, Integer, OrderedText> renderTextProvider) {
+    public void addFormatter(Formatter formatter) {
         // Do nothing. I would love to throw an UnsupportedOperationException,
         // but this is called by ChatInputSuggestor.
     }
@@ -175,7 +169,7 @@ public class MultilineTextFieldWidget extends TextFieldWidget {
             charIndex++;
         }
 
-        setCursor(charIndex, Screen.hasShiftDown());
+        setCursor(charIndex, ScreenUtil.hasShiftDown());
     }
 
     @Override
@@ -195,7 +189,8 @@ public class MultilineTextFieldWidget extends TextFieldWidget {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyInput input) {
+        int keyCode = input.key();
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             if (editBox.hasSelection()) {
                 logger.warn("Indenting selected lines is not yet supported");
@@ -206,20 +201,23 @@ public class MultilineTextFieldWidget extends TextFieldWidget {
             }
             return true;
         } else {
-            return editBox.handleSpecialKey(keyCode);
+            return editBox.handleSpecialKey(input);
         }
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+
         if (!this.isVisible()) {
             return false;
         }
         if (self.isFocusUnlocked()) {
             setFocused(isMouseOver(mouseX, mouseY));
         }
-        if (isFocused() && isMouseOver(mouseX, mouseY) && button == 0) {
-            editBox.setSelecting(Screen.hasShiftDown());
+        if (isFocused() && isMouseOver(mouseX, mouseY) && click.button() == 0) {
+            editBox.setSelecting(ScreenUtil.hasShiftDown());
             moveCursor(mouseX, mouseY);
             return true;
         }
@@ -227,17 +225,20 @@ public class MultilineTextFieldWidget extends TextFieldWidget {
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    public boolean mouseDragged(Click click, double offsetX, double offsetY) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+
         if (!this.isVisible()) {
             return false;
         }
         if (self.isFocusUnlocked()) {
             setFocused(isMouseOver(mouseX, mouseY));
         }
-        if (isFocused() && isMouseOver(mouseX, mouseY) && button == 0) {
+        if (isFocused() && isMouseOver(mouseX, mouseY) && click.button() == 0) {
             editBox.setSelecting(true);
             moveCursor(mouseX, mouseY);
-            editBox.setSelecting(Screen.hasShiftDown());
+            editBox.setSelecting(ScreenUtil.hasShiftDown());
             return true;
         }
         return false;
@@ -246,8 +247,8 @@ public class MultilineTextFieldWidget extends TextFieldWidget {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (this.isMouseOver(mouseX, mouseY)) {
-            horizontalAmount = Screen.hasShiftDown() ? verticalAmount : horizontalAmount;
-            verticalAmount = Screen.hasShiftDown() ? 0 : verticalAmount;
+            horizontalAmount = ScreenUtil.hasShiftDown() ? verticalAmount : horizontalAmount;
+            verticalAmount = ScreenUtil.hasShiftDown() ? 0 : verticalAmount;
 
             boolean changed = setHorizontalScroll(getHorizontalScroll() - (int) Math.round(horizontalAmount * SCROLL_SENSITIVITY));
             changed = changed || setVerticalScroll(getVerticalScroll() - (int) Math.round(verticalAmount * SCROLL_SENSITIVITY));
@@ -269,7 +270,7 @@ public class MultilineTextFieldWidget extends TextFieldWidget {
         }
 
         if (drawsBackground()) {
-            var textureId = TextFieldWidgetAccessor.getTextures().get(isNarratable(), isFocused());
+            var textureId = TextFieldWidgetAccessor.getTextures().get(isInteractable(), isFocused());
             context.drawGuiTexture(RenderPipelines.GUI_TEXTURED, textureId, getX(), getY(), getWidth(), getHeight());
         }
 

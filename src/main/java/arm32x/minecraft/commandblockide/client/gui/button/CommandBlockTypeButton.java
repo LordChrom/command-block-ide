@@ -2,12 +2,11 @@ package arm32x.minecraft.commandblockide.client.gui.button;
 
 import arm32x.minecraft.commandblockide.client.Dirtyable;
 import arm32x.minecraft.commandblockide.mixin.client.DrawContextAccessor;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.block.entity.CommandBlockBlockEntity;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
+import net.minecraft.client.input.AbstractInput;
 import net.minecraft.client.render.*;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -25,8 +24,8 @@ public final class CommandBlockTypeButton extends IconButton implements Dirtyabl
 	}
 
 	@Override
-	public void onPress() {
-		if (Screen.hasShiftDown()) {
+	public void onPress(AbstractInput input) {
+		if (input.hasShift()) {
 			conditional = !conditional;
 		} else {
 			switch (type) {
@@ -75,8 +74,7 @@ public final class CommandBlockTypeButton extends IconButton implements Dirtyabl
 		idBuilder.append(".png");
 		return Identifier.of("minecraft", idBuilder.toString());
 	}
-
-	@Override
+    @Override
 	public void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
 		var texture = getTexture();
 
