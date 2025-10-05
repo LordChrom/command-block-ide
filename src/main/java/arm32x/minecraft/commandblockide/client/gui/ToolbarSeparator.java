@@ -23,10 +23,10 @@ public final class ToolbarSeparator extends ClickableWidget {
 		return SelectionType.NONE;
 	}
 
-	@Override
-	public boolean isNarratable() {
-		return false;
-	}
+    @Override
+    public boolean isInteractable() {
+        return false;
+    }
 
 	@Override
 	protected MutableText getNarrationMessage() {

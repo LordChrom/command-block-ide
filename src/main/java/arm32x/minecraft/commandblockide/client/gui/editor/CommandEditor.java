@@ -3,12 +3,12 @@ package arm32x.minecraft.commandblockide.client.gui.editor;
 import arm32x.minecraft.commandblockide.client.Dirtyable;
 import arm32x.minecraft.commandblockide.client.gui.Container;
 import arm32x.minecraft.commandblockide.client.gui.MultilineTextFieldWidget;
-import arm32x.minecraft.commandblockide.util.CommandAutoFormatter.CommandAutoFormatter;
 import arm32x.minecraft.commandblockide.client.processor.CommandProcessor;
 import arm32x.minecraft.commandblockide.client.processor.MultilineCommandProcessor;
 import arm32x.minecraft.commandblockide.client.processor.StringMapping;
 import arm32x.minecraft.commandblockide.mixin.client.ChatInputSuggestorAccessor;
 import arm32x.minecraft.commandblockide.mixinextensions.client.ChatInputSuggestorExtension;
+import arm32x.minecraft.commandblockide.util.ScreenUtil;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.context.ParsedArgument;
 import com.mojang.brigadier.context.StringRange;
@@ -21,11 +21,14 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ChatInputSuggestor;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.screen.narration.NarrationPart;
+import net.minecraft.client.input.CharInput;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.command.CommandSource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.OrderedText;
@@ -108,13 +111,13 @@ public abstract class CommandEditor extends Container implements Dirtyable {
 		setHeight(commandField.getLineCount() * commandField.getLineHeight() + 4);
 	}
 
-	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (handleSpecialKey(keyCode)) {
+    @Override
+	public boolean keyPressed(KeyInput input) {
+        if (handleSpecialKey(input.key())) {
 			return true;
-		} else if (isSuggestorActive() && suggestor.keyPressed(keyCode, scanCode, modifiers)) {
+		} else if (isSuggestorActive() && suggestor.keyPressed(input)) {
 			return true;
-		} else if (commandField.keyPressed(keyCode, scanCode, modifiers)) {
+		} else if (commandField.keyPressed(input)) {
 			// Movement commands such as arrow keys should hide the suggestion
 			// window since it's likely the user will want to move up or down.
 			setSuggestorActive(false);
@@ -135,8 +138,8 @@ public abstract class CommandEditor extends Container implements Dirtyable {
 			// Immediately trigger completion without using Mixin by
 			// simulating a key press. The scancode and modifiers arguments
 			// are never used.
-			return suggestor.keyPressed(GLFW.GLFW_KEY_TAB, -1, 0);
-		} else if (keyCode == GLFW.GLFW_KEY_SPACE && Screen.hasControlDown()) {
+			return suggestor.keyPressed(new KeyInput(GLFW.GLFW_KEY_TAB, -1, 0));
+		} else if (keyCode == GLFW.GLFW_KEY_SPACE && ScreenUtil.hasControlDown()) {
 			setSuggestorActive(true);
 			suggestor.show(true);
 			return true;
@@ -145,9 +148,9 @@ public abstract class CommandEditor extends Container implements Dirtyable {
 		return false;
     }
 
-	@Override
-	public boolean charTyped(char chr, int modifiers) {
-		if (super.charTyped(chr, modifiers)) {
+    @Override
+	public boolean charTyped(CharInput input) {
+		if (super.charTyped(input)) {
 			// The if statement ensures that only valid characters will trigger
 			// the suggestions box.
 			setSuggestorActive(true);
@@ -158,17 +161,17 @@ public abstract class CommandEditor extends Container implements Dirtyable {
 		}
 	}
 
-	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
-		boolean result = suggestor.mouseClicked(mouseX, mouseY, button)
-			|| super.mouseClicked(mouseX, mouseY, button);
+    @Override
+	public boolean mouseClicked(Click click, boolean doubled) {
+		boolean result = suggestor.mouseClicked(click)
+			|| super.mouseClicked(click, doubled);
 		suggestor.setWindowActive(false);
 		return result;
 	}
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-		return suggestor.mouseScrolled(Screen.hasShiftDown() ? 0 : verticalAmount)
+		return suggestor.mouseScrolled(ScreenUtil.hasShiftDown() ? 0 : verticalAmount)
 			|| super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
 	}
 

@@ -5,13 +5,16 @@ import arm32x.minecraft.commandblockide.client.gui.ToolbarSeparator;
 import arm32x.minecraft.commandblockide.client.gui.button.SimpleIconButton;
 import arm32x.minecraft.commandblockide.client.gui.editor.CommandEditor;
 import arm32x.minecraft.commandblockide.client.storage.MultilineCommandStorage;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import arm32x.minecraft.commandblockide.util.CommandAutoFormatter.CommandAutoFormatter;
+import arm32x.minecraft.commandblockide.util.ScreenUtil;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.screen.Screen;
@@ -19,6 +22,7 @@ import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.tooltip.TooltipPositioner;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
@@ -126,12 +130,12 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 		super.close();
 	}
 
-	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		if (handleSpecialKey(keyCode)) {
+    @Override
+	public boolean keyPressed(KeyInput input) {
+		if (handleSpecialKey(input.key())) {
 			return true;
 		} else if (getFocused() != null) {
-			return getFocused().keyPressed(keyCode, scanCode, modifiers);
+			return getFocused().keyPressed(input);
 		} else {
 			// Bypass the special cases for Escape and Tab added in the Screen
 			// class to maintain full control over keyboard shortcuts.
@@ -164,7 +168,7 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 				close();
 				return true;
 			}
-			if (Screen.hasControlDown() && !Screen.hasAltDown() && focused instanceof CommandEditor editor) {
+			if (ScreenUtil.hasControlDown() && !ScreenUtil.hasAltDown() && focused instanceof CommandEditor editor) {
 				if (editor.isSuggestorActive()) {
 					editor.setSuggestorActive(false);
 					return true;
@@ -173,12 +177,12 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 				}
 				setFocused(null);
 				return true;
-			} else if (Screen.hasControlDown() && Screen.hasAltDown() && focused instanceof CommandEditor editor) {
+			} else if (ScreenUtil.hasControlDown() && ScreenUtil.hasAltDown() && focused instanceof CommandEditor editor) {
 				//this should probably have a GUI button
 
 				String command = editor.getSingleLineCommand();
 
-				if(Screen.hasShiftDown()){
+				if(ScreenUtil.hasShiftDown()){
 					editor.setCommand(command);
 				}else{
 					editor.setCommand(CommandAutoFormatter.format(command));
@@ -186,13 +190,13 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 				return true;
 			}
 			return false;
-		} else if (keyCode == GLFW.GLFW_KEY_UP && Screen.hasControlDown() || keyCode == GLFW.GLFW_KEY_TAB && Screen.hasControlDown() && Screen.hasShiftDown()) {
+		} else if (keyCode == GLFW.GLFW_KEY_UP && ScreenUtil.hasControlDown() || keyCode == GLFW.GLFW_KEY_TAB && ScreenUtil.hasControlDown() && ScreenUtil.hasShiftDown()) {
 			changeFocus(false);
 			return true;
-		} else if (keyCode == GLFW.GLFW_KEY_DOWN && Screen.hasControlDown() || keyCode == GLFW.GLFW_KEY_TAB && Screen.hasControlDown() && !Screen.hasShiftDown()) {
+		} else if (keyCode == GLFW.GLFW_KEY_DOWN && ScreenUtil.hasControlDown() || keyCode == GLFW.GLFW_KEY_TAB && ScreenUtil.hasControlDown() && !ScreenUtil.hasShiftDown()) {
 			changeFocus(true);
 			return true;
-		} else if (keyCode == GLFW.GLFW_KEY_S && Screen.hasControlDown()) {
+		} else if (keyCode == GLFW.GLFW_KEY_S && ScreenUtil.hasControlDown()) {
 			saveButton.playDownSound(MinecraftClient.getInstance().getSoundManager());
 			save();
 			return true;
@@ -203,8 +207,12 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 
 	// This must be overridden because the superclass' implementation
 	// short-circuits on success, which breaks text field focus.
-	@Override
-	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    @Override
+	public boolean mouseClicked(Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        int button = click.button();
+
 		if (mouseX > width - 4 && button == 0) {
 			int virtualHeight = maxScrollOffset + height;
 			int scrollbarHeight = Math.round((float)height / virtualHeight * height);
@@ -225,7 +233,7 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 
 		Element focusedChild = null;
 		for (Element child : children()) {
-			if (child.mouseClicked(mouseX, mouseY, button) && focusedChild == null) {
+			if (child.mouseClicked(click, doubled) && focusedChild == null) {
 				focusedChild = child;
 			}
 		}
@@ -236,26 +244,27 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 		return true;
 	}
 
-	@Override
-	public boolean mouseReleased(double mouseX, double mouseY, int button) {
-		if (button == 0 && draggingScrollbar) {
+    @Override
+	public boolean mouseReleased(Click click) {
+		if (click.button() == 0 && draggingScrollbar) {
 			draggingScrollbar = false;
 			return true;
 		} else {
-			return super.mouseReleased(mouseX, mouseY, button);
+			return super.mouseReleased(click);
 		}
 	}
 
-	@Override
-	public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-		if (button == 0 && draggingScrollbar) {
+    @Override
+	public boolean mouseDragged(Click click, double offsetX, double offsetY) {
+        double mouseY = click.y();
+		if (click.button() == 0 && draggingScrollbar) {
 			int virtualHeight = maxScrollOffset + height;
 			int scrollbarHeight = Math.round((float)height / virtualHeight * height);
 			int scrollOffsetDelta = (int)Math.round((mouseY - mouseYAtScrollbarDragStart) / scrollbarHeight * height);
 			setScrollOffset(scrollOffsetAtScrollbarDragStart + scrollOffsetDelta);
 			return true;
 		} else {
-			return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+			return super.mouseDragged(click, offsetX, offsetY);
 		}
 	}
 
@@ -265,8 +274,8 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 			if (editor.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) return true;
 		}
 
-		double amount = Screen.hasShiftDown() ? 0 : verticalAmount;
-		if (amount != 0 && mouseY < height - 36 && !Screen.hasShiftDown()) {
+		double amount = ScreenUtil.hasShiftDown() ? 0 : verticalAmount;
+		if (amount != 0 && mouseY < height - 36 && !ScreenUtil.hasShiftDown()) {
 			setScrollOffset(getScrollOffset() - (int)Math.round(amount * SCROLL_SENSITIVITY));
 			return true;
 		}
@@ -317,7 +326,7 @@ public abstract class CommandIDEScreen<E extends CommandEditor> extends Screen i
 	private void changeFocus(boolean lookForwards) {
 		Element element = getFocused();
 		if (element == null) {
-			CommandEditor editor = editors.get(0);
+			CommandEditor editor = editors.getFirst();
 			setFocusedEditor(editor);
 			return;
 		}
